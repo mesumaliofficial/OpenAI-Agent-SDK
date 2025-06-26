@@ -1,0 +1,20 @@
+[project]
+name = "step-03-litellm"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Mesum Ali", email = "syedmesumjaffary@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "chainlit>=2.5.5",
+    "litellm>=1.72.0",
+]
+
+[project.scripts]
+step-03-litellm = "step_03_litellm:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
