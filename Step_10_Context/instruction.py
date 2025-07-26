@@ -1,6 +1,6 @@
 import asyncio
 from config import model
-from agents import Agent, Runner, RunContextWrapper, function_tool
+from agents import Agent, Runner, RunContextWrapper
 from dataclasses import dataclass
 
 @dataclass
@@ -8,24 +8,25 @@ class UserInfo:
     name: str
     age: int
 
-@function_tool
-async def fetch_user_data(wrapper: RunContextWrapper[UserInfo]) -> str:
-    return f"The user name is {wrapper.context.name} and age is {wrapper.context.age}"
+class UserContextWrapper(RunContextWrapper):
+    def __call__(self, context: UserInfo ):
+        return f"The user name is {context.name} and age is {context.age}"
+
 
 async def main():
     user_info = UserInfo(name="Mesum", age=18 )
 
-    agent: Agent = Agent(
+    agent: Agent[UserInfo] = Agent(
         name="Irona",
-        instructions="You are a Helpful Asistant",
+        instructions=f"You are a Helpful Asistant and ",
         model=model,
-        tools=[fetch_user_data]
+        context_wrapper=UserContextWrapper(),
     )
 
     res = await Runner.run(
         starting_agent=agent,
         input="what is my name",
-        context=user_info
+        context=user_info,
     )
     print(res.final_output)
 
