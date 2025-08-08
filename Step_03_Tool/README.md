@@ -68,7 +68,7 @@ Ap kisi bhi python function ko ek tool ki tarha use kar sakty hain Agent SDK usk
 
 **is process mein:** 
 - inspect module: Ye Python ka built-in module hai jo function ke signature ka structure nikalta hai. (signature ka matlab function ka naam use arguments aur return type)
-- griffe: ool ko yeh samajhne mein madad deta hai ke har field ka matlab kya hai
+- griffe: Tool ko yeh samajhne mein madad deta hai ke har field ka matlab kya hai.
 - pydantic: Ye ek library hai jo inputs ka data schema banata hai aur unki validation karta hai. for example: Agar koi user `amount="not_a_number"` bhej de, to `pydantic` kahega: ❌ “Yeh float number hona chahiye!”
 
 ```bash
@@ -182,3 +182,129 @@ fetch_data
 }
 ```
 </details>
+
+### 🔸Custom Function Tool
+Kabhi kabhi ap python function ko tool ky tor peer use nh karna chahty, agar ap chahen tw direct tool bhi bana sakty `FunctionTool` ki madad sy apko srf ye chezen provide karni honge.
+
+- **name →** Tool ka naam.
+- **description →** Tool kya karta hai, LLM ko samjhane ke liye.
+- `params_json_schema →` Ap apny Tool ke input parameters ko JSON schema mein define karty hain.
+- `on_invoke_tool`  jo ek async function hota hai jo ek `ToolContext` aur arguments ko JSON string ke tor par receive karta hai, aur tool ka output string ke tor par return karna hota hai.
+
+```bash
+from typing import Any
+
+from pydantic import BaseModel
+
+from agents import RunContextWrapper, FunctionTool
+
+
+
+def do_some_work(data: str) -> str:
+    return "done"
+
+
+class FunctionArgs(BaseModel):
+    username: str
+    age: int
+
+
+async def run_function(ctx: RunContextWrapper[Any], args: str) -> str:
+    parsed = FunctionArgs.model_validate_json(args)
+    return do_some_work(data=f"{parsed.username} is {parsed.age} years old")
+
+
+tool = FunctionTool(
+    name="process_user",
+    description="Processes extracted user data",
+    params_json_schema=FunctionArgs.model_json_schema(),
+    on_invoke_tool=run_function,
+)
+```
+
+### 🔸Automatic argument and docstring parsing
+Jaise pehle bataya gaya, tool automatically function ka signature parse karta hai taake tool ke arguments ka schema ban sake, aur hum docstring parse karte hain taake LLM ko tool ki description mil saky.
+
+- `inspect module →` inspect Python ka built-in module hai jo function ya class ka structure read kar sakta hai. Iska use karke arguments ka naam aur type annotations extract kiye jate hain, aur unse dynamically ek Pydantic model banaya jata hai. Pydantic model data validation ke liye hota hai. yeh ensure karta hai ke jo data pass ho raha hai wo required schema ke mutabiq ho. Yeh parser zyada tar types ko support karta hai, including: Python primitives (str, int, bool, float), Pydantic models, TypedDicts, Aur complex nested types. 
+
+- `griffe →` ek library hai jo Python code se docstrings read karke samajh sakti hai. Docstring ke 3 formats supported hain: Google style, Sphinx style, NumPy style. System koshish karta hai ke docstring ka format automatically detect kare, lekin hum isse manually bhi set kar sakte hain jab `function_tool` call karte hain. agar ap chahen tw Docstring parsing disable bhi kar sakty hain `use_docstring_info=False` set karky.
+
+### 🔸Agents as tools
+Normally jab hum ek agent sy dusry agent ko kam handoff karty hain tw control usky pass chala jata hay lekin kuch workflows me hum ye nh chahty ek central yani boss agent ho jo har spcialize agent sy kam karwaly lekin control apny pass rakhy.
+
+``` bash
+from agents import Agent, Runner
+import asyncio
+
+spanish_agent = Agent(
+    name="Spanish agent",
+    instructions="You translate the user's message to Spanish",
+)
+
+french_agent = Agent(
+    name="French agent",
+    instructions="You translate the user's message to French",
+)
+
+orchestrator_agent = Agent(
+    name="orchestrator_agent",
+    instructions=(
+        "You are a translation agent. You use the tools given to you to translate."
+        "If asked for multiple translations, you call the relevant tools."
+    ),
+    tools=[
+        spanish_agent.as_tool(
+            tool_name="translate_to_spanish",
+            tool_description="Translate the user's message to Spanish",
+        ),
+        french_agent.as_tool(
+            tool_name="translate_to_french",
+            tool_description="Translate the user's message to French",
+        ),
+    ],
+)
+
+async def main():
+    result = await Runner.run(orchestrator_agent, input="Say 'Hello, how are you?' in Spanish.")
+    print(result.final_output)
+```
+
+### 🔸Custom output extraction
+kuch cases mein hum chahty hain tool-agents ka output boss agent ko return karny sy phely modify keya jaye.
+
+#### Kyun zaroorat padti hai?**
+- **Specific data extract karna** Sub-agent ne apni chat history mein bohut sara text bhej deya. lekin hame srf (json payload) chahiye.
+
+- **Format change karna** Sub-Agent ne Markdown format mei output deya. lekin hame plain text ya CSV mein chahiye. 
+
+- **Output validate karna** Sub-Agent ka response empty ya galat format mein ho aur tum ek fallback/default value dena chahty ho
+
+ap ye kam `as_tool` method mein `custom_output_extractor` argument provide karky kar sakty hain.
+
+```bash
+async def extract_json_payload(run_result: RunResult) -> str:
+    # Scan the agent’s outputs in reverse order until we find a JSON-like message from a tool call.
+    for item in reversed(run_result.new_items):
+        if isinstance(item, ToolCallOutputItem) and item.output.strip().startswith("{"):
+            return item.output.strip()
+    # Fallback to an empty JSON object if nothing was found
+    return "{}"
+
+
+json_tool = data_agent.as_tool(
+    tool_name="get_data_json",
+    tool_description="Run the data agent and return only its JSON payload",
+    custom_output_extractor=extract_json_payload,
+)
+```
+
+### 🔸Handling errors in function tools
+jab hum `@function_tool` docorator ka use karky ek function tool banaty hain. tw hum optionally error provide kar sakty hain ek `failure_error_function` provide karky
+
+- **Default Behavior** Agar kuch pass nh karty tw by default `default_tool_error_function` run hota hay
+
+- **Custom Error Function** Agar apna custom `failure_error_function` pas karty hain tw system hamara function run karyga. aur ap custom message ya error bhj sakty hain.
+
+- **Passing None** Agar tum explicitly `failure_error_function=None` pass karte ho tw ko koi error hanling nh hoti. error ko re-raise keya jata hay. taky apny code mein manually handle kar saken. jesy: `ModelBehaviorError` Agar model ne invalid JSON produce kiya, `UserError` Agar tumhara code crash ho gaya.
+
+- **Manual FunctionTool creation** Agar decorator ka use nh kar rahy aur manually object bana rahy tw khud sy error handling karna paryge `on_invoke_tool` ky andar by default nh hoge.
