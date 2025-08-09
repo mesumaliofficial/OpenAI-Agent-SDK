@@ -6,9 +6,6 @@ Tools ek helper hota hay jo agent ko koi kam karny ki permission deta hay:
 - external APIs ko call karna jab need ho.
 - aur Computer ka istemal bhi karna
 
-[check code on colab](https://colab.research.google.com/drive/1bAUN4Xp_--7y_BCcJ-m103YCFkOUDSBQ?usp=sharing)
-
-
 ### 🔸What is tool calling ?
 Tool calling ka matlab hay jab AI kisi conversation ke waqt decide karta hay usy kis tool ka use karna chahiye.
 
