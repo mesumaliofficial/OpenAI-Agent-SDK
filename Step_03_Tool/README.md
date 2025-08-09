@@ -184,7 +184,7 @@ fetch_data
 </details>
 
 ### 🔸Custom Function Tool
-Kabhi kabhi ap python function ko tool ky tor peer use nh karna chahty, agar ap chahen tw direct tool bhi bana sakty `FunctionTool` ki madad sy apko srf ye chezen provide karni honge.
+Kabhi kabhi ap python function ko tool ky tor per use nh karna chahty, agar ap chahen tw direct tool bhi bana sakty `FunctionTool` ki madad sy apko srf ye chezen provide karni honge.
 
 - **name →** Tool ka naam.
 - **description →** Tool kya karta hai, LLM ko samjhane ke liye.
