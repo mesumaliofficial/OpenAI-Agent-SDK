@@ -6,6 +6,8 @@ Tools ek helper hota hay jo agent ko koi kam karny ki permission deta hay:
 - external APIs ko call karna jab need ho.
 - aur Computer ka istemal bhi karna
 
+[check code on colab](https://colab.research.google.com/drive/1bAUN4Xp_--7y_BCcJ-m103YCFkOUDSBQ?usp=sharing)
+
 
 ### 🔸What is tool calling ?
 Tool calling ka matlab hay jab AI kisi conversation ke waqt decide karta hay usy kis tool ka use karna chahiye.
@@ -308,3 +310,10 @@ jab hum `@function_tool` docorator ka use karky ek function tool banaty hain. tw
 - **Passing None** Agar tum explicitly `failure_error_function=None` pass karte ho tw ko koi error hanling nh hoti. error ko re-raise keya jata hay. taky apny code mein manually handle kar saken. jesy: `ModelBehaviorError` Agar model ne invalid JSON produce kiya, `UserError` Agar tumhara code crash ho gaya.
 
 - **Manual FunctionTool creation** Agar decorator ka use nh kar rahy aur manually object bana rahy tw khud sy error handling karna paryge `on_invoke_tool` ky andar by default nh hoge.
+
+
+---
+
+### Resources & Practical Demos
+
+- [OpenAI Agent Tools Colab Notebook](https://colab.research.google.com/drive/1bAUN4Xp_--7y_BCcJ-m103YCFkOUDSBQ?usp=sharing) → Interactive example with code and usage.
